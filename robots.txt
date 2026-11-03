@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://martinsmagomedovsqed-design.github.io/bandfork/sitemap.xml
