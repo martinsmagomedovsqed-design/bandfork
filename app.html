@@ -914,11 +914,25 @@ function buildPaths(Q){
 }
 function setGates(){const idx={ref:0,des:1,del:2}[AU.mode];AU.gates.forEach((g,i)=>g.gain.setTargetAtTime(i===idx?1:0,AU.ctx.currentTime,.015));}
 function stopSrc(){if(AU.src){try{AU.src.stop();}catch(e){}try{AU.src.disconnect();}catch(e){}AU.src=null;}}
+
+function renderLoop(ctx,sec,fn){const sr=ctx.sampleRate,n=Math.floor(sr*sec),b=ctx.createBuffer(1,n,sr),d=b.getChannelData(0);fn(d,sr,n);let m=0;for(let i=0;i<n;i++)m=Math.max(m,Math.abs(d[i]));const k=m?0.6/m:1;for(let i=0;i<n;i++)d[i]*=k;return b;}
+const TWO_PI=2*Math.PI;
+function addNote(d,sr,t0,dur,f,amp,harm,att){const i0=Math.floor(t0*sr),n=Math.floor(dur*sr);for(let i=0;i<n&&i0+i<d.length;i++){const t=i/sr,env=Math.min(1,t/(att||.005))*Math.exp(-t*(4/dur));let v=0;for(let h=1;h<=harm.length;h++)v+=harm[h-1]*Math.sin(TWO_PI*f*h*t);d[i0+i]+=amp*env*v;}}
+function addKick(d,sr,t0){const i0=Math.floor(t0*sr),n=Math.floor(.35*sr);let ph=0;for(let i=0;i<n&&i0+i<d.length;i++){const t=i/sr,f=45+80*Math.exp(-t*28);ph+=TWO_PI*f/sr;d[i0+i]+=Math.sin(ph)*Math.exp(-t*9);}}
+function addHat(d,sr,t0,amp){const i0=Math.floor(t0*sr),n=Math.floor(.06*sr);let p=0;for(let i=0;i<n&&i0+i<d.length;i++){const t=i/sr,w=Math.random()*2-1;d[i0+i]+=(w-p)*amp*Math.exp(-t*70);p=w;}}
+const GEN={
+  bass:ctx=>renderLoop(ctx,4,(d,sr)=>{[55,55,65.4,55,73.4,55,82.4,65.4].forEach((f,i)=>addNote(d,sr,i*.5,.5,f,1,[1,.45,.25,.12]));}),
+  kick:ctx=>renderLoop(ctx,4,(d,sr)=>{for(let b=0;b<8;b++)addKick(d,sr,b*.5);for(let h=0;h<16;h++)addHat(d,sr,h*.25+.125,.35);}),
+  chord:ctx=>renderLoop(ctx,4,(d,sr)=>{[[220,261.6,329.6],[174.6,220,261.6]].forEach((c,k)=>c.forEach(f=>addNote(d,sr,k*2,2,f,.5,[1,.5,.33,.25,.2,.16],.25)));}),
+  groove:ctx=>renderLoop(ctx,4,(d,sr)=>{for(let b=0;b<8;b++)addKick(d,sr,b*.5);for(let h=0;h<16;h++)addHat(d,sr,h*.25+.125,.25);
+    [55,55,65.4,55,73.4,55,82.4,65.4].forEach((f,i)=>addNote(d,sr,i*.5+.25,.25,f,.9,[1,.45,.25]));
+    const ar=[440,523.3,659.3,523.3,440,587.3,659.3,784,659.3,587.3,523.3,587.3,440,523.3,659.3,523.3];ar.forEach((f,i)=>addNote(d,sr,i*.25,.22,f,.22,[1,.3,.15]));})
+};
 function makeSource(){
   const ctx=AU.ctx;stopSrc();let s;
   if(AU.type==='tone'){s=ctx.createOscillator();s.type='sine';s.frequency.value=Math.max(1,parseSI(ui.lfreq)||1000);const a=ctx.createGain();a.gain.value=.5;s.connect(a);AU.toneG=a;AU.src=s;a.connect&&0;AU.inputs.forEach(n=>a.connect(n));s.start();return;}
   const bufs=AU.bufs;let b;
-  if(AU.type==='noise')b=bufs.noise||(bufs.noise=pinkBuf(ctx));else if(AU.type==='sweep')b=bufs.sweep||(bufs.sweep=sweepBuf(ctx));else b=AU.file;
+  if(AU.type==='noise')b=bufs.noise||(bufs.noise=pinkBuf(ctx));else if(AU.type==='sweep')b=bufs.sweep||(bufs.sweep=sweepBuf(ctx));else if(GEN[AU.type])b=bufs[AU.type]||(bufs[AU.type]=GEN[AU.type](ctx));else b=AU.file;
   if(!b)return;s=ctx.createBufferSource();s.buffer=b;s.loop=true;AU.inputs.forEach(n=>s.connect(n));s.start();AU.src=s;
 }
 function startAudio(){const ctx=ensureCtx();if(!ctx)return false;ctx.resume();setMaster();buildPaths(Pn());makeSource();AU.playing=true;drawSpec();return true;}
@@ -946,12 +960,12 @@ V.listen={
     <div><div class="note" style="margin-bottom:3px">Level</div><span class="toggle"><button type="button" id="match" aria-pressed="${AU.match}">Match at band centre</button></span></div>
     </div>
     <div class="row" style="margin-top:12px;gap:10px 16px">
-      <select id="lsrc" aria-label="Sound source">${[['noise','Pink noise'],['sweep','Sweep 20 Hz to 20 kHz'],['tone','Tone'],['file','Your audio file']].map(([k,t])=>`<option value="${k}"${AU.type===k?' selected':''}>${t}</option>`).join('')}</select>
+      <select id="lsrc" aria-label="Sound source"><optgroup label="Test signals">${[['noise','Pink noise'],['sweep','Sweep 20 Hz to 20 kHz'],['tone','Tone']].map(([k,t])=>`<option value="${k}"${AU.type===k?' selected':''}>${t}</option>`).join('')}</optgroup><optgroup label="Demo loops (generated here, no copyright)">${[['bass','Bass line'],['kick','Kick and hi-hats'],['chord','Chord pad'],['groove','Full groove']].map(([k,t])=>`<option value="${k}"${AU.type===k?' selected':''}>${t}</option>`).join('')}</optgroup><optgroup label="Your own"><option value="file"${AU.type==='file'?' selected':''}>Your audio file</option></optgroup></select>
       <input class="inp" id="lfreq" style="width:90px" value="${esc(ui.lfreq)}" aria-label="Tone frequency in hertz" ${AU.type==='tone'?'':'hidden'}>
       <input type="file" id="lfile" accept="audio/*" ${AU.type==='file'?'':'hidden'} aria-label="Audio file">
       <label class="note" style="display:flex;gap:8px;align-items:center;flex:1;min-width:180px">Volume <input type="range" id="lvol" min="0" max="100" value="${AU.vol}" aria-label="Volume"></label></div></div>
     <canvas id="spec" aria-label="Live spectrum"></canvas>
-    <p class="note" id="lnote"></p><div id="res" hidden></div>`;},
+    <p class="note" id="lnote"></p><p class="note">Want real music? Download a free track, then choose Your audio file. Try <a href="https://ncs.io/music" target="_blank" rel="noopener">NCS</a>, <a href="https://freemusicarchive.org" target="_blank" rel="noopener">Free Music Archive</a> or <a href="https://pixabay.com/music/" target="_blank" rel="noopener">Pixabay Music</a>, and check each track's license. The demo loops above are generated in your browser.</p><div id="res" hidden></div>`;},
   after(){
     $('play').onclick=()=>{if(AU.playing){stopAudio();$('play').textContent='▶';}else if(startAudio())$('play').textContent='■';else $('lnote').textContent='This browser has no Web Audio support.';};
     $('path').onclick=e=>{const b=e.target.closest('button');if(!b)return;AU.mode=b.dataset.p;document.querySelectorAll('#path button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));if(AU.ctx&&AU.gates.length)setGates();};
