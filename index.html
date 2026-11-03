@@ -244,6 +244,7 @@ canvas{border:0}
     <button role="tab" data-tab="tools">Tools</button>
     <button role="tab" data-tab="validate">Validate</button>
     <button role="tab" data-tab="check">Check</button>
+    <button role="tab" data-tab="export">Export</button>
     <button role="tab" data-tab="about">About</button>
   </nav>
   <div class="layout">
@@ -923,12 +924,47 @@ V.check={
     $('copy').onclick=()=>{const done=()=>{$('copied').textContent='Copied';},fb=()=>{const r=document.createRange();r.selectNodeContents($('sumtxt'));const s=getSelection();s.removeAllRanges();s.addRange(r);$('copied').textContent='Press Ctrl+C to copy the selected text';};try{navigator.clipboard.writeText(txt).then(done,fb);}catch(e){fb();}};
   }
 };
+
+/* ---------- export ---------- */
+function spiceNet(Q){
+  const g=1+Q.R2/Q.R1,A0=1e5,fp=Q.GBW/A0,Cp=1/(2*Math.PI*fp*1e3),n=x=>Number(x.toPrecision(6)).toString();
+  return ['* Passband: signal chain exported for LTspice / ngspice / Qucs',
+  '* Op-amp: single-pole model, open-loop gain 1e5, gain-bandwidth '+fmt(Q.GBW,'Hz')+'. Gain stage = '+g.toFixed(2)+' V/V.',
+  'V1 in 0 AC 1','Chigh in a '+n(Q.Chigh),'Rhigh a 0 '+n(Q.Rhigh),
+  'E1 e 0 a fb '+A0,'Rp e p 1k','Cp p 0 '+n(Cp),'E2 oa 0 p 0 1',
+  'R2 oa fb '+n(Q.R2),'R1 fb 0 '+n(Q.R1),
+  'Rlow oa lp '+n(Q.Rlow),'Clow lp 0 '+n(Q.Clow),'E3 buf 0 lp 0 1',
+  'Rprot buf o '+n(Q.Rprot),'Cprot o l '+n(Q.Cprot),'Rload l 0 '+n(Q.Rload),
+  '.ac dec 100 0.01 10Meg','.probe V(oa) V(buf) V(l)','* Plot V(buf) for the chain output and V(l) for the signal at the load.','.end'].join('\n');
+}
+function csvOut(Q){
+  const rows=['frequency_Hz,chain_output_dB,at_load_dB,phase_at_load_deg'];
+  logGrid(1,1e6,121).forEach(f=>{const r=resp(f,Q);rows.push([f.toPrecision(5),db(r.pre).toFixed(3),db(r.post).toFixed(3),(r.ph*180/Math.PI).toFixed(2)].join(','));});
+  return rows.join('\n');
+}
+function saveText(name,text,mime){try{const u=URL.createObjectURL(new Blob([text],{type:mime}));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);}catch(e){}}
+function copyText(t,el){const ok=()=>{el.textContent='Copied';},fb=()=>{el.textContent='Select the text above and copy it';};try{navigator.clipboard.writeText(t).then(ok,fb);}catch(e){fb();}}
+V.export={
+  build(){return '<div id="res"></div>';},
+  calc(res){
+    const Q=Pn(),net=spiceNet(Q),csv=csvOut(Q);
+    res.innerHTML=`<div class="card"><h2>SPICE netlist</h2><p class="note" style="margin:0 0 8px">Paste into LTspice, ngspice or Qucs to confirm this model against a circuit simulator. Op-amp is a single-pole model with the gain-bandwidth you entered.</p>
+      <div class="copybox" id="nt"></div><div class="row" style="margin-top:8px"><button class="btn primary" id="c1" type="button">Copy</button><button class="btn" id="d1" type="button">Save .cir</button><span class="note" id="m1" role="status"></span></div></div>
+     <div class="card"><h2>Response data (CSV)</h2><p class="note" style="margin:0 0 8px">121 points from 1 Hz to 1 MHz, for a spreadsheet, MATLAB or a report.</p>
+      <div class="copybox" id="cv" style="max-height:160px;overflow:auto"></div><div class="row" style="margin-top:8px"><button class="btn primary" id="c2" type="button">Copy</button><button class="btn" id="d2" type="button">Save .csv</button><span class="note" id="m2" role="status"></span></div></div>`;
+    $('nt').textContent=net;$('cv').textContent=csv;
+    $('c1').onclick=e=>copyText(net,$('m1'));$('c2').onclick=e=>copyText(csv,$('m2'));
+    $('d1').onclick=()=>saveText('passband.cir',net,'text/plain');$('d2').onclick=()=>saveText('passband.csv',csv,'text/csv');
+  }
+};
 /* ---------- about ---------- */
 V.about={
   build(){return `<div class="card prose"><h2>Passband</h2>
     <p>A model of an analog signal chain: passive high-pass, non-inverting gain stage, passive low-pass, unity buffer, and a series R and C into a load. It began as the analysis companion to a band-pass headphone amplifier and is set up to work for any conditioning chain of this shape, such as microphone preamps, biosignal front ends and sensor amplifiers. Pick an example in the header.</p>
     <h3>Why it matters</h3>
     <p>A series network added only to limit fault current looks harmless. Into a 32 Ω load, a 150 Ω resistor and 1 µF capacitor create a second high-pass at 874 Hz that cuts the signal by 34 dB at 100 Hz, which the filter design never accounted for. The same trap exists wherever a coupling capacitor or output resistor meets a low load impedance.</p>
+    <h3>What is different</h3>
+    <p>Filter design tools usually stop at the filter itself. Passband models the whole path to the load: the filter, the gain stage with its finite bandwidth, the output network and the load impedance, so it reports the band that is actually delivered. It adds component tolerance spread, noise, clipping and distortion, a listening comparison, design checks with pass or fail verdicts, and export to SPICE and CSV so a result can be confirmed independently.</p>
     <h3>Using it</h3>
     <p>Edit values on the left in engineering notation, such as <code>7.8k</code>, <code>3.2n</code> or <code>220u</code>. Arrow keys step through standard values. On Response, drag the yellow handles on the chart. Every chart shows readings on hover or touch. Save builds by name, or copy a build code to share one. Keys <kbd>1</kbd> to <kbd>9</kbd> switch views.</p>
     <h3>Limits</h3>
@@ -960,7 +996,7 @@ function renderBuilds(msg){
     try{applySnap(JSON.parse(decodeURIComponent(escape(atob(t.slice(5))))));say('Loaded.');}catch(e){say('That build code could not be read.');}};
 }
 /* ---------- shell ---------- */
-const TABS=['circuit','response','loading','tolerance','noise','level','design','listen','tools','validate','check','about'];
+const TABS=['circuit','response','loading','tolerance','noise','level','design','listen','tools','validate','check','export','about'];
 function show(t){
   if(!TABS.includes(t)) t='response';
   if(tab==='listen'&&t!=='listen')cancelAnimationFrame(AU.raf);
