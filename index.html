@@ -96,9 +96,6 @@ pre .k{color:var(--ink)}pre .c{color:#5f6b8f}
 .uc{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
 .uc div{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font-size:15px}
 .uc b{display:block;font:600 18px var(--fd);color:var(--ink);margin-bottom:4px}
-/* nav install button appears once the hero one scrolls away */
-var hi=document.querySelector('.hero .go.inst'),ni=$('navi');
-if(hi&&ni&&'IntersectionObserver' in window){ni.classList.add('off');new IntersectionObserver(function(es){ni.classList.toggle('off',es[0].isIntersecting);}).observe(hi);}
 /* install */
 .install{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:clamp(24px,5vw,56px)}
 .steps{margin:22px 0 0;color:var(--muted);font-size:15.5px;line-height:1.7}

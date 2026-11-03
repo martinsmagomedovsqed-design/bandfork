@@ -14,17 +14,17 @@
    Palette: cool grey panel, hard ink outlines with offset shadows, signal orange as the one loud colour; blue, yellow and mint carry state.
    Screens are always dark, with cyan for the designed response, orange for what the load receives, lime for measured data. */
 :root{
-  --bg:#f4f4f2; --panel:#f4f4f2; --ink:#10131a; --muted:#576070; --line:#dcdcd8; --shc:#10131a; --field:#ffffff;
+  --bg:#f4f4f2; --panel:#f4f4f2; --ink:#10131a; --muted:#576070; --line:#dcdcd8; --shc:#10131a; --soft:#ecece8; --field:#ffffff;
   --accent:#ff5a1f; --on-accent:#10131a; --blue:#2450ff; --yel:#ffd02a; --mint:#16c48a; --bad:#ff5a1f; --warn:#ffd02a; --ok:#16c48a;
   --scr:#0a0f1e; --scr-grid:#1b2748; --scr-grid2:#121a35; --scr-ink:#e6edff; --scr-muted:#7d8db6;
   --t1:#3de1ff; --t2:#ff7a3d; --t3:#b8ff3d; --band:rgba(61,225,255,.16);
   --f-disp:"Chakra Petch","Arial Narrow",system-ui,sans-serif; --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"Overpass Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0d0e11; --panel:#0d0e11; --ink:#eef1f7; --muted:#98a2b4; --line:#24272e; --shc:#000; --field:#10131a;
+  --bg:#0d0e11; --panel:#0d0e11; --ink:#eef1f7; --muted:#98a2b4; --line:#24272e; --shc:#000; --soft:#15171d; --field:#10131a;
   --accent:#ff6a33; --blue:#7f98ff; --scr:#070b16; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0d0e11; --panel:#0d0e11; --ink:#eef1f7; --muted:#98a2b4; --line:#24272e; --shc:#000; --field:#10131a;
+  --bg:#0d0e11; --panel:#0d0e11; --ink:#eef1f7; --muted:#98a2b4; --line:#24272e; --shc:#000; --soft:#15171d; --field:#10131a;
   --accent:#ff6a33; --blue:#7f98ff; --scr:#070b16; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body);
@@ -240,6 +240,87 @@ canvas{border:0}
 .strow b{font:600 14px var(--f-mono);text-align:right}.strow .d{font:12px var(--f-mono);color:var(--muted);text-align:right}.strow.tot{font-weight:600}
 @media(max-width:600px){.strow{grid-template-columns:110px minmax(0,1fr) 70px}.strow .d{display:none}}
 @media(max-width:700px){.fw{overflow-x:auto}#fsv{min-width:640px}}
+/* polish: room to breathe, softer shapes */
+body{font-size:15.5px;line-height:1.55}
+.top{padding-block:6px 4px}
+nav#tabs{gap:4px 28px;margin-bottom:10px}
+nav#tabs button{padding:12px 0;font-size:14.5px}
+.layout{grid-template-columns:324px minmax(0,1fr);gap:40px}
+main,#res{gap:24px}
+.card,.grp{background:var(--soft);border:0;border-radius:22px}
+.card{padding:26px 28px}
+.card>h2{margin-bottom:18px}
+.grp>summary{padding:18px 22px}
+.grp>.in{padding:2px 22px 22px}
+.stage{margin:22px 0 12px}
+.stage:first-child{margin-top:4px}
+.fgrid{gap:16px 14px}
+.fld{gap:5px}
+.fld input,.inp,.ctl input[type=text]{min-height:40px;border-radius:12px;padding:6px 13px;background:var(--field);border:1px solid transparent}
+.fld input:focus,.inp:focus,.ctl input[type=text]:focus{border-color:var(--ink);box-shadow:none}
+textarea,.copybox{background:var(--field);border:1px solid transparent;border-radius:14px;padding:14px}
+.kf{gap:16px}
+.k{background:var(--soft);border:0;border-radius:18px;padding:18px 20px}
+.k .v{margin:3px 0 4px}
+.verdict,.verdict.bad,.verdict.warn,.verdict.ok{background:var(--soft);border:0;border-left:0;border-radius:22px;padding:24px 28px;box-shadow:inset 5px 0 0 var(--accent)}
+.verdict.warn{box-shadow:inset 5px 0 0 var(--warn)}.verdict.ok{box-shadow:inset 5px 0 0 var(--ok)}
+.verdict .msg{font-size:21px;line-height:1.35}
+.scr{border-radius:16px;padding:12px 12px 6px}
+.scr-leg{padding:6px 14px 12px}
+.btn,.verdict .btn{min-height:40px;padding:6px 18px}
+.toggle button{padding:8px 16px}
+.toggle,select{min-height:40px}
+.ctl{gap:14px 18px}
+.checks li{padding:14px 0}
+.strow{padding:14px 0}
+.tools{gap:24px}
+.row{gap:12px 14px}
+.chips{gap:10px}
+.note{line-height:1.5}
+.top .grow{padding-left:2px}
+@media(max-width:900px){.layout{gap:24px}}
+@media(max-width:700px){.card{padding:20px 18px}.k{padding:14px 16px}.verdict,.verdict.bad,.verdict.warn,.verdict.ok{padding:18px 18px}.grp>summary{padding:16px 18px}.grp>.in{padding:2px 18px 18px}main,#res{gap:18px}}
+.k .v{overflow-wrap:normal;word-break:normal}
+@media(max-width:700px){.k .v{font-size:20px}}
+/* pass 3: calmer chrome, progressive disclosure */
+.top{padding-block:20px 8px}
+h1{font-size:22px}
+nav#tabs{align-items:center;border-bottom:1px solid var(--line);gap:0 30px;position:relative}
+nav#tabs>button,.moreMenu button{white-space:nowrap}
+.more{position:relative;display:inline-flex}
+#moreBtn{background:none;border:0;border-bottom:2px solid transparent;border-radius:0;padding:12px 0;font:500 14.5px var(--f-body);color:var(--muted);min-height:0;display:inline-flex;gap:6px;align-items:center}
+#moreBtn::after{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .2s}
+#moreBtn[aria-expanded=true]::after{transform:rotate(225deg)}
+#moreBtn:hover,#moreBtn[aria-selected=true]{color:var(--ink)}
+#moreBtn[aria-selected=true]{border-bottom-color:var(--accent)}
+.moreMenu{position:absolute;top:calc(100% + 6px);left:-14px;z-index:30;min-width:170px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px;display:none;flex-direction:column;box-shadow:0 18px 50px -12px rgba(0,0,0,.35)}
+.moreMenu.open{display:flex;animation:pop .18s ease-out}
+.moreMenu button{background:none;border:0;border-radius:10px;padding:10px 14px;text-align:left;font:500 14.5px var(--f-body);color:var(--ink);min-height:0;border-bottom:0}
+.moreMenu button:hover{background:var(--soft)}
+.moreMenu button[aria-selected=true]{background:var(--soft);box-shadow:inset 3px 0 0 var(--accent)}
+.chain{display:flex;flex-direction:column;gap:12px}
+.stg{background:var(--soft);border-radius:20px;transition:background .2s}
+.stg>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:10px 1fr;column-gap:12px;row-gap:2px;align-items:center;padding:16px 20px}
+.stg>summary::-webkit-details-marker{display:none}
+.stg>summary i{width:10px;height:10px;border-radius:50%;grid-row:1/3}
+.stg>summary .nm{font:600 15px var(--f-disp)}
+.stg>summary .sum{grid-column:2;font:12.5px var(--f-mono);color:var(--muted)}
+.stg>summary::after{content:"";position:absolute}
+.stg{position:relative}
+.stg[open]{box-shadow:inset 0 0 0 1px var(--line)}
+.stg>.fgrid{padding:2px 20px 20px}
+.stg>summary:hover .nm{color:var(--accent)}
+.grp>summary{font:600 15px var(--f-disp)}
+:root[data-theme=dark] .k{box-shadow:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .k{box-shadow:none}}
+@keyframes pop{from{opacity:0;transform:translateY(-4px)}}
+@keyframes up{from{opacity:0;transform:translateY(12px)}}
+#view.ent>*,#view.ent #res>*{animation:up .5s cubic-bezier(.2,.7,.2,1) both}
+#view.ent #res>*:nth-child(2){animation-delay:.05s}#view.ent #res>*:nth-child(3){animation-delay:.1s}#view.ent #res>*:nth-child(4){animation-delay:.15s}#view.ent #res>*:nth-child(n+5){animation-delay:.2s}
+@media (prefers-reduced-motion:reduce){#view.ent>*,#view.ent #res>*{animation:none}}
+@media(max-width:700px){#moreBtn{display:none}.more{display:contents}.moreMenu{display:contents!important;position:static;animation:none;box-shadow:none;border:0;padding:0;background:none}.moreMenu button{padding:7px 12px;border:1px solid var(--line);border-radius:999px;box-shadow:none}.moreMenu button[aria-selected=true]{background:var(--ink);color:var(--bg);border-color:var(--ink);box-shadow:none}}
+.note a,.prose a{color:var(--ink);text-decoration-color:var(--accent);text-underline-offset:3px}
+.toggle button+button{border-left:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -263,21 +344,23 @@ if(location.protocol.indexOf('http')===0&&!s&&!d&&!/[?&#]open\b/.test(q))locatio
     <button role="tab" data-tab="noise">Noise</button>
     <button role="tab" data-tab="level">Level</button>
     <button role="tab" data-tab="design">Design</button>
+    <span class="more" id="more"><button type="button" id="moreBtn" aria-haspopup="true" aria-expanded="false">More</button><div class="moreMenu" id="moreMenu" role="group">
     <button role="tab" data-tab="listen">Listen</button>
     <button role="tab" data-tab="tools">Tools</button>
     <button role="tab" data-tab="validate">Validate</button>
     <button role="tab" data-tab="check">Check</button>
     <button role="tab" data-tab="export">Export</button>
     <button role="tab" data-tab="about">About</button>
+    </div></span>
   </nav>
   <div class="layout">
     <div class="rail">
-      <details class="grp" open><summary>Signal chain</summary><div class="in">
-        <div class="stage"><i style="background:var(--accent)"></i>High-pass</div><div class="fgrid" id="f-hp"></div>
-        <div class="stage"><i style="background:var(--blue)"></i>Gain stage</div><div class="fgrid" id="f-g"></div>
-        <div class="stage"><i style="background:var(--yel)"></i>Low-pass</div><div class="fgrid" id="f-lp"></div>
-        <div class="stage"><i style="background:var(--mint)"></i>Output network and load</div><div class="fgrid" id="f-out"></div>
-      </div></details>
+      <div class="chain">
+      <details class="stg"><summary><i style="background:var(--accent)"></i><span class="nm">High-pass</span><span class="sum" id="sum-hp"></span></summary><div class="fgrid" id="f-hp"></div></details>
+      <details class="stg"><summary><i style="background:var(--blue)"></i><span class="nm">Gain stage</span><span class="sum" id="sum-g"></span></summary><div class="fgrid" id="f-g"></div></details>
+      <details class="stg"><summary><i style="background:var(--yel)"></i><span class="nm">Low-pass</span><span class="sum" id="sum-lp"></span></summary><div class="fgrid" id="f-lp"></div></details>
+      <details class="stg"><summary><i style="background:var(--mint)"></i><span class="nm">Output and load</span><span class="sum" id="sum-out"></span></summary><div class="fgrid" id="f-out"></div></details>
+    </div>
       <details class="grp"><summary>Tolerance, supply, noise</summary><div class="in"><div class="fgrid" id="f-misc"></div></div></details>
       <details class="grp"><summary>Builds and sharing</summary><div class="in" id="builds"></div></details>
     </div>
@@ -1144,12 +1227,24 @@ function show(t){
   if(tab==='listen'&&t!=='listen')cancelAnimationFrame(AU.raf);
   if(tab==='flow'&&t!=='flow')cancelAnimationFrame(FL.raf);
   tab=t;document.body.dataset.tab=t;
-  document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
+  document.querySelectorAll('#tabs [data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
+  {const inMore=!!document.querySelector('#moreMenu [data-tab="'+t+'"]');$('moreBtn').setAttribute('aria-selected',String(inMore));$('moreBtn').textContent=inMore?(document.querySelector('#moreMenu [data-tab="'+t+'"]').textContent):'More';$('moreMenu').classList.remove('open');$('moreBtn').setAttribute('aria-expanded','false');}
   if(t==='circuit')return;
   $('view').innerHTML=V[t].build();if(V[t].after)V[t].after();calc();
+  {const v=$('view');v.classList.remove('ent');void v.offsetWidth;v.classList.add('ent');clearTimeout(show.tm);show.tm=setTimeout(()=>v.classList.remove('ent'),900);}
 }
 function numberFigs(){let n=0;document.querySelectorAll('#res .card').forEach(c=>{if(c.querySelector('.scr')){const h=c.querySelector('h2');if(h&&!h.querySelector('.fn')){n++;h.insertAdjacentHTML('afterbegin',`<span class="fn">Fig. ${n}</span>`);}}});}
+function sums(){
+  if(anyBad())return;
+  try{const Q=Pn(),f=x=>fmt(x,'Hz',3),g=1+Q.R2/Q.R1;
+   $('sum-hp').textContent=f(1/(2*Math.PI*Q.Rhigh*Q.Chigh));
+   $('sum-g').textContent='×'+(g<100?g.toFixed(1):Math.round(g))+'  '+db(g).toFixed(1)+' dB';
+   $('sum-lp').textContent=f(1/(2*Math.PI*Q.Rlow*Q.Clow));
+   $('sum-out').textContent=f(1/(2*Math.PI*(Q.Rprot+Q.Rload)*Q.Cprot))+' · '+fmt(Q.Rload,'Ω',3);}
+  catch(e){}
+}
 function calc(){
+  sums();
   if(tab==='circuit'||!V[tab]||!V[tab].calc)return;
   const res=$('res');if(!res)return;
   CH.length=0;
@@ -1163,7 +1258,11 @@ function applyPreset(id){const p=PRESETS.find(x=>x[0]===id);if(!p)return;setVals
 buildFields();
 $('preset').innerHTML='<option value="">Custom values</option>'+PRESETS.map(([id,n])=>`<option value="${id}">${n}</option>`).join('');
 $('preset').addEventListener('change',e=>{if(e.target.value)applyPreset(e.target.value);});
-document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>{location.hash=b.dataset.tab;}));
+document.querySelectorAll('#tabs [data-tab]').forEach(b=>b.addEventListener('click',()=>{location.hash=b.dataset.tab;}));
+$('moreBtn').addEventListener('click',e=>{e.stopPropagation();const m=$('moreMenu'),o=!m.classList.contains('open');m.classList.toggle('open',o);$('moreBtn').setAttribute('aria-expanded',String(o));});
+document.addEventListener('click',e=>{if(!e.target.closest('#more')){$('moreMenu').classList.remove('open');$('moreBtn').setAttribute('aria-expanded','false');}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('moreMenu').classList.remove('open');}});
+document.querySelectorAll('.stg').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)document.querySelectorAll('.stg').forEach(o=>{if(o!==d)o.open=false;});}));
 window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
 document.addEventListener('keydown',e=>{
   if(e.metaKey||e.ctrlKey||e.altKey||/^(INPUT|TEXTAREA|SELECT)$/.test((e.target||{}).tagName||''))return;
