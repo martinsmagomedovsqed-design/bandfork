@@ -221,6 +221,25 @@ canvas{border:0}
 .bigbtn{border:0}
 @media(max-width:760px){nav#tabs{border-bottom:0}nav#tabs button{padding:7px 12px;border:1px solid var(--line);border-radius:999px}nav#tabs button[aria-selected=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}}
 .scr-leg{border:0;background:var(--scr);border-radius:0 0 6px 6px}.scr:has(+.scr-leg){border-radius:6px 6px 0 0}
+
+/* flow view */
+#fsv{display:block;width:100%;height:auto}
+#fsv .wr{stroke:#8d98b8;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;fill:none}
+#fsv .bx{fill:#0e1220;stroke:#8d98b8;stroke-width:1.6}
+#fsv .nd{fill:#8d98b8}
+#fsv text{font:11px var(--f-mono);fill:#7d8db6}
+#fsv .lb{fill:#aab4d2}#fsv .vb{fill:#e9edf7;font-weight:600}#fsv .ib{fill:var(--accent)}#fsv .tl{fill:#e9edf7;font-size:13px}#fsv .sg{fill:#7d8db6;font-size:13px}
+#fsv .dt{fill:var(--accent)}
+#fsc text{font:10px var(--f-mono);fill:#7d8db6}
+.trc{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.t0{stroke:#6a7494;stroke-width:1.3}.t1{stroke:#6a7494;stroke-width:1.3;stroke-dasharray:3 3}.t2{stroke:#e9edf7;stroke-width:2}.t3{stroke:#6a7494;stroke-width:1.3;stroke-dasharray:1 4}.t4{stroke:var(--accent);stroke-width:2.4}
+.lg1,.lg2,.lg3,.lg4,.lg5{font:11px var(--f-mono);color:#7d8db6;margin-right:16px}
+.lg3{color:#e9edf7}.lg5{color:var(--accent)}
+.strow{display:grid;grid-template-columns:150px minmax(0,1fr) 90px 90px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.strow:first-child{border-top:0}.strow .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}.strow .bar i{display:block;height:100%;background:var(--ink);border-radius:3px}
+.strow b{font:600 14px var(--f-mono);text-align:right}.strow .d{font:12px var(--f-mono);color:var(--muted);text-align:right}.strow.tot{font-weight:600}
+@media(max-width:600px){.strow{grid-template-columns:110px minmax(0,1fr) 70px}.strow .d{display:none}}
+@media(max-width:700px){.fw{overflow-x:auto}#fsv{min-width:640px}}
 </style>
 </head>
 <body>
@@ -238,6 +257,7 @@ if(location.protocol.indexOf('http')===0&&!s&&!d&&!/[?&#]open\b/.test(q))locatio
   <nav id="tabs" role="tablist" aria-label="Views">
     <button role="tab" data-tab="circuit">Circuit</button>
     <button role="tab" data-tab="response">Response</button>
+    <button role="tab" data-tab="flow">Flow</button>
     <button role="tab" data-tab="loading">Loading</button>
     <button role="tab" data-tab="tolerance">Tolerance</button>
     <button role="tab" data-tab="noise">Noise</button>
@@ -762,6 +782,111 @@ V.design={
     res.querySelectorAll('button[data-rp]').forEach(b=>b.onclick=()=>{setField('Rprot',+b.dataset.rp);setField('Cprot',+b.dataset.c);calc();});
   }
 };
+/* ---------- flow: live circuit with current and voltage ---------- */
+const FL={raf:0,t0:0,play:true,speed:1,m:null,dots:[],traces:[],phi0:0};
+const cadd=(a,b)=>[a[0]+b[0],a[1]+b[1]],csub=(a,b)=>[a[0]-b[0],a[1]-b[1]],carg=z=>Math.atan2(z[1],z[0]);
+function flowModel(Q,f,Vpk){
+  const w=2*Math.PI*f,x=w*Q.Rhigh*Q.Chigh,g=1+Q.R2/Q.R1,fcl=Q.GBW/g;
+  const Vin=[Vpk,0],Hhp=cdiv([0,x],[1,x]),Va=cmul(Vin,Hhp),Ihp=cdiv(Va,[Q.Rhigh,0]);
+  const G=cdiv([g,0],[1,f/fcl]),Vo=cmul(Va,G),Ifb=cdiv(Vo,[Q.R1+Q.R2,0]);
+  const Hlp=cdiv([1,0],[1,w*Q.Rlow*Q.Clow]),Vlp=cmul(Vo,Hlp),Ilp=cdiv(csub(Vo,Vlp),[Q.Rlow,0]);
+  const Hout=cdiv([Q.Rload,0],[Q.Rload+Q.Rprot,-1/(w*Q.Cprot)]),Iout=cdiv(Vlp,[Q.Rload+Q.Rprot,-1/(w*Q.Cprot)]),Vl=cmul(Vlp,Hout);
+  return {w,Vin,Va,Vo,Vlp,Vl,Ihp,Ifb,Ilp,Iout,Iamp:cadd(Ifb,Ilp),st:[Hhp,G,Hlp,Hout]};
+}
+const zig=(x1,y1,x2,y2,n=6)=>{const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L,px=-uy,py=ux,a=7;let p=`M${x1} ${y1}`;for(let i=0;i<n;i++){const t0=(i+.5)/n,s=i%2?-1:1;p+=`L${(x1+dx*t0+px*a*s).toFixed(1)} ${(y1+dy*t0+py*a*s).toFixed(1)}`;}return p+`L${x2} ${y2}`;};
+function polyAt(pts,s){let i=0;while(i<pts.length-2){const L=Math.hypot(pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1]);if(s<=L)break;s-=L;i++;}const a=pts[i],b=pts[i+1],L=Math.hypot(b[0]-a[0],b[1]-a[1])||1,t=Math.max(0,Math.min(1,s/L));return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];}
+function polyLen(pts){let L=0;for(let i=0;i<pts.length-1;i++)L+=Math.hypot(pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1]);return L;}
+const gnd=(x,y)=>`<path d="M${x} ${y}v8M${x-10} ${y+8}h20M${x-6} ${y+12}h12M${x-2} ${y+16}h4" class="wr"/>`;
+const capH=(x,y)=>`<path d="M${x-12} ${y}h8M${x-4} ${y-12}v24M${x+4} ${y-12}v24M${x+4} ${y}h8" class="wr"/>`;
+const capV=(x,y)=>`<path d="M${x} ${y-12}v8M${x-12} ${y-4}h24M${x-12} ${y+4}h24M${x} ${y+4}v8" class="wr"/>`;
+const tri=(x,y,lab)=>`<path d="M${x} ${y-55}v110l100 -55z" class="bx"/><text x="${x+14}" y="${y-28}" class="sg">+</text><text x="${x+14}" y="${y+36}" class="sg">−</text><text x="${x+40}" y="${y+4}" class="tl" text-anchor="middle">${lab}</text>`;
+function flowSVG(Q,M){
+  const g=1+Q.R2/Q.R1,F=(v,u)=>fmt(v,u,3);
+  const dots=[
+    {id:'hp',I:M.Ihp,pts:[[50,100],[150,100],[150,225]]},
+    {id:'fb',I:M.Ifb,pts:[[380,125],[380,262],[220,262],[220,205],[176,205],[176,235]]},
+    {id:'lp',I:M.Ilp,pts:[[380,125],[500,125],[500,225]]},
+    {id:'out',I:M.Iout,pts:[[600,125],[780,125],[780,225]]}];
+  const wires=`<g class="wr" fill="none"><path d="M50 100H88M112 100H240M150 100V130M150 190V225M190 100"/><path d="M50 134V100M50 166V225"/><path d="M340 125H420M470 125H540M600 125H640M690 125H700M708 125H724M740 125H780M780 125V150M780 210V225M500 125V160M500 180V225"/><path d="M380 125V262H280M220 262H220M334 262H380M220 262V150H240"/><path d="M220 205H214M176 205V235"/><path d="M240 150H236"/></g>`;
+  const comps=`<g class="wr" fill="none">${capH(100,100)}<path d="${zig(150,130,150,190)}"/><path d="${zig(420,125,470,125)}"/>${capV(500,170)}<path d="${zig(640,125,690,125)}"/>${capH(716,125)}<path d="${zig(780,150,780,210)}"/><path d="${zig(334,262,280,262)}"/><path d="${zig(214,205,176,205,4)}"/></g>`;
+  const gr=gnd(50,225)+gnd(150,225)+gnd(500,225)+gnd(780,225)+gnd(176,235);
+  const src=`<circle cx="50" cy="150" r="16" class="bx"/><path d="M40 150q5 -10 10 0t10 0" class="wr" fill="none"/>`;
+  const nd=[[150,100],[380,125],[500,125],[780,125],[220,205]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" class="nd"/>`).join('');
+  const lb=(x,y,t,a)=>`<text x="${x}" y="${y}" class="lb" text-anchor="${a||'middle'}">${t}</text>`;
+  const labels=lb(100,78,F(Q.Chigh,'F'))+lb(172,166,F(Q.Rhigh,'Ω'),'start')+lb(445,106,F(Q.Rlow,'Ω'))+lb(522,172,F(Q.Clow,'F'),'start')+lb(665,106,F(Q.Rprot,'Ω'))+lb(716,100,F(Q.Cprot,'F'))+lb(802,182,F(Q.Rload,'Ω'),'start')+lb(307,284,F(Q.R2,'Ω'))+lb(195,194,F(Q.R1,'Ω'),'middle');
+  const badge=(x,y,k,v)=>`<g><text x="${x}" y="${y}" class="vb" text-anchor="middle" id="vb-${k}">${v}</text></g>`;
+  const vb=badge(50,78,'in','')+badge(150,78,'a','')+badge(380,100,'o','')+badge(500,100,'l','')+badge(780,100,'L','');
+  const stg=lb(290,56,'Gain stage  ×'+g.toFixed(g<100?1:0))+lb(570,56,'Buffer')+lb(210,56,'');
+  const dotEls=dots.map(d=>`<g id="dt-${d.id}"></g>`).join('');
+  const tx=(x,y,t,id)=>`<text x="${x}" y="${y}" class="ib" text-anchor="${id==='ci-hp'?'end':id==='ci-fb'?'start':'middle'}" id="${id}">${t}</text>`;
+  const cur=tx(132,176,'','ci-hp')+tx(392,268,'','ci-fb')+tx(420,168,'','ci-lp')+tx(690,168,'','ci-out');
+  return {svg:`<svg viewBox="0 0 900 300" id="fsv" role="img" aria-label="Circuit with animated current flow">${wires}${comps}${gr}${src}${tri(240,125,'×'+(g<100?g.toFixed(1):Math.round(g)))}${tri(540,125,'×1')}${nd}${labels}${vb}${cur}${dotEls}</svg>`,dots};
+}
+function stageRows(M){
+  const nm=['High-pass','Gain stage','Low-pass','Output network'],cum=[];let acc=0,ph=0;
+  const rows=M.st.map((H,i)=>{const d=db(cabs(H)),p=carg(H)*180/Math.PI;acc+=d;ph+=p;return{n:nm[i],d,p,acc};});
+  return rows;
+}
+V.flow={
+  build(){return `<div class="card"><div class="row" style="gap:12px 18px">
+      <label class="note">Test frequency <input class="inp" id="ff" style="width:110px" value="${esc(ui.freq)}" aria-label="Test frequency in hertz"></label>
+      <label class="note">Source, p-p <input class="inp" id="fv" style="width:100px" value="${esc(ui.vsrc)}" aria-label="Source peak to peak volts"></label>
+      <span class="chips" id="fch"></span><span class="sp"></span>
+      <button class="btn" id="fp" type="button">${FL.play?'Pause':'Play'}</button></div>
+      <div class="row" style="margin-top:10px"><label class="note" style="flex:1;min-width:200px;display:flex;gap:10px;align-items:center">Frequency <input type="range" id="fs" min="0" max="1000" aria-label="Frequency slider"></label>
+      <label class="note" style="display:flex;gap:10px;align-items:center;width:200px">Speed <input type="range" id="fsp" min="10" max="300" value="${FL.speed*100}" aria-label="Animation speed"></label></div></div><div id="res"></div>`;},
+  after(){
+    const sl=$('fs'),lg=Math.log10;const toS=f=>Math.round((lg(Math.max(f,0.1))-lg(0.1))/(lg(1e6)-lg(0.1))*1000),fromS=s=>0.1*Math.pow(1e6/0.1,s/1000);
+    const f0=parseSI(ui.freq);if(f0>0)sl.value=toS(f0);
+    sl.oninput=()=>{const f=fromS(+sl.value);ui.freq=fmt(f,'',3).trim().replace(' ','');$('ff').value=ui.freq;calc();};
+    $('ff').oninput=e=>{ui.freq=e.target.value;const f=parseSI(ui.freq);if(f>0)sl.value=toS(f);calc();};
+    $('fv').oninput=e=>{ui.vsrc=e.target.value;calc();};
+    $('fp').onclick=e=>{FL.play=!FL.play;e.currentTarget.textContent=FL.play?'Pause':'Play';if(FL.play)flowLoop();};
+    $('fsp').oninput=e=>{FL.speed=+e.target.value/100;};
+  },
+  calc(res){
+    const Q=Pn(),S=stats(Q),f=parseSI(ui.freq),vp=parseSI(ui.vsrc)/2;
+    if(!(f>0)||!(vp>0)){res.innerHTML='<div class="verdict bad"><div class="msg">Enter a frequency and a source level.</div></div>';cancelAnimationFrame(FL.raf);return;}
+    const ch=$('fch');if(ch){const fc=Math.sqrt(S.cp.lo*S.cp.hi);ch.innerHTML=[['Lower corner',S.cp.lo],['Centre',fc],['Upper corner',S.cp.hi],['Delivered start',S.cq.lo]].map(([t,v])=>`<button class="btn sm" type="button" data-f="${v}">${t}</button>`).join('');
+      ch.onclick=e=>{const b=e.target.closest('button');if(!b)return;ui.freq=fmt(+b.dataset.f,'',3).trim().replace(' ','');$('ff').value=ui.freq;$('ff').oninput({target:$('ff')});};}
+    const M=flowModel(Q,f,vp);FL.m=M;FL.Q=Q;
+    const {svg,dots}=flowSVG(Q,M);FL.dots=dots;
+    const rows=stageRows(M),tot=rows[rows.length-1].acc,topL=rows.reduce((m,r)=>r.d<m.d?r:m,rows[0]);
+    const tdb=db(cabs(M.Vl)/vp),pk=Math.max(...rows.map(r=>Math.abs(r.d)),1);
+    const ilim=Q.Ilim,over=cabs(M.Iout)>ilim,clip=Math.max(cabs(M.Vo),cabs(M.Vlp))>Q.Vs-2;
+    res.innerHTML=`<div class="card"><h2>Circuit at ${fq(f)}<span class="sp"></span><span class="note" style="text-transform:none;letter-spacing:0;font-size:13px">Dots show current: speed is the frequency, spread is the size, lag is the phase.</span></h2><div class="scr"><div class="fw" style="padding:2px">${svg}</div></div></div>
+     <div class="card"><h2>Signal along the chain</h2><div class="scr"><svg id="fsc" viewBox="0 0 900 190" role="img" aria-label="Voltage at five nodes"></svg><div class="scr-leg" style="background:none;border:0"><span class="lg1">Source</span><span class="lg2">After high-pass</span><span class="lg3">Gain stage out</span><span class="lg4">After low-pass</span><span class="lg5">At the load</span></div></div></div>
+     <div class="card"><h2>What each stage does at ${fq(f)}</h2><div id="fst">${rows.map(r=>`<div class="strow"><span>${r.n}</span><span class="bar"><i style="width:${Math.min(100,Math.abs(r.d)/pk*100).toFixed(1)}%;${r.d<0?'background:var(--accent)':''}"></i></span><b>${Math.abs(r.d)<0.05?'':r.d>=0?'+':'−'}${Math.abs(r.d).toFixed(1)} dB</b><span class="d">${r.p>=0?'leads':'lags'} ${Math.abs(r.p).toFixed(0)}°</span></div>`).join('')}<div class="strow tot"><span>Total to the load</span><span class="bar"></span><b>${tot>=0?'+':'−'}${Math.abs(tot).toFixed(1)} dB</b><span class="d">${fmt(cabs(M.Vl),'V',3)} pk</span></div></div>
+       <p class="note" style="margin-top:8px">${topL.d<-3?`Biggest loss: ${topL.n.toLowerCase()}, ${Math.abs(topL.d).toFixed(1)} dB. `:''}${over?'Load current exceeds the op-amp limit. ':''}${clip?'Voltage reaches the supply limit. ':''}${!over&&!clip&&topL.d>=-3?'Nothing is limiting at this level.':''}</p></div>`;
+    $('vb-in').textContent=fmt(cabs(M.Vin),'V',3);$('vb-a').textContent=fmt(cabs(M.Va),'V',3);$('vb-o').textContent=fmt(cabs(M.Vo),'V',3);$('vb-l').textContent=fmt(cabs(M.Vlp),'V',3);$('vb-L').textContent=fmt(cabs(M.Vl),'V',3);
+    $('ci-hp').textContent=fmt(cabs(M.Ihp),'A',3);$('ci-fb').textContent=fmt(cabs(M.Ifb),'A',3);$('ci-lp').textContent=fmt(cabs(M.Ilp),'A',3);$('ci-out').textContent=fmt(cabs(M.Iout),'A',3);
+    const Imax=Math.max(...dots.map(d=>cabs(d.I)),1e-30);
+    dots.forEach(d=>{d.len=polyLen(d.pts);d.n=Math.max(4,Math.round(d.len/16));d.th=carg(d.I);d.m=Math.pow(cabs(d.I)/Imax,.55);d.g=$('dt-'+d.id);
+      d.g.innerHTML=Array.from({length:d.n},()=>'<circle r="3.2" class="dt"/>').join('');d.el=Array.from(d.g.children);});
+    /* traces */
+    const nodes=[M.Vin,M.Va,M.Vo,M.Vlp,M.Vl],mx=Math.max(...nodes.map(cabs))*1.1||1;FL.nodes=nodes;FL.mx=mx;
+    const sc=$('fsc'),H=190,Wd=900;let gr=`<line class="gl" x1="40" x2="${Wd-8}" y1="${H/2}" y2="${H/2}"/>`;
+    for(const k of [-1,-.5,.5,1])gr+=`<line class="gl2" x1="40" x2="${Wd-8}" y1="${H/2-k*(H/2-10)}" y2="${H/2-k*(H/2-10)}"/><text x="34" y="${H/2-k*(H/2-10)+4}" text-anchor="end">${fmt(k*mx,'',2).trim()}</text>`;
+    sc.innerHTML=gr+nodes.map((n,i)=>`<path id="tr${i}" class="trc t${i}" d=""/>`).join('');
+    FL.traces=[0,1,2,3,4].map(i=>$('tr'+i));
+    flowLoop(true);
+  }
+};
+function flowDraw(t){
+  const M=FL.m;if(!M||!FL.traces.length)return;
+  const th=t*2*Math.PI*0.5*FL.speed;
+  FL.dots.forEach(d=>{const amp=Math.min(26,d.len*.09)*d.m;
+    d.el.forEach((c,k)=>{const base=(k+.5)/d.n*d.len,s=Math.max(0,Math.min(d.len,base+amp*Math.sin(th+d.th)));const p=polyAt(d.pts,s);c.setAttribute('cx',p[0].toFixed(1));c.setAttribute('cy',p[1].toFixed(1));c.style.opacity=(.25+.75*d.m).toFixed(2);});});
+  const W=900,H=190,x0=40,N=160;
+  FL.nodes.forEach((n,i)=>{const a=cabs(n),p=carg(n);let s='';for(let k=0;k<=N;k++){const ph=k/N*4*Math.PI,v=a*Math.sin(ph-th+p+Math.PI/2*0),y=H/2-v/FL.mx*(H/2-10),x=x0+(W-8-x0)*k/N;s+=(k?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}FL.traces[i].setAttribute('d',s);});
+}
+function flowLoop(once){
+  cancelAnimationFrame(FL.raf);
+  const rm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(once||rm||!FL.play){flowDraw(FL.t||0);if(!FL.play||rm)return;}
+  const tick=ts=>{if(tab!=='flow')return;if(!FL.t0)FL.t0=ts-(FL.t||0)*1000;FL.t=(ts-FL.t0)/1000;flowDraw(FL.t);if(FL.play)FL.raf=requestAnimationFrame(tick);};
+  FL.t0=0;FL.raf=requestAnimationFrame(tick);
+}
 /* ---------- listen ---------- */
 const AU={ctx:null,mix:null,master:null,an:null,src:null,nodes:[],inputs:[],gates:[],mode:'del',playing:false,match:true,vol:25,type:'noise',bufs:{},file:null,raf:0};
 function iir(ctx,type,tau){const K=2*tau*ctx.sampleRate,a=[1,(1-K)/(1+K)],b=type==='hp'?[K/(1+K),-K/(1+K)]:[1/(1+K),1/(1+K)];return ctx.createIIRFilter(b,a);}
@@ -999,10 +1124,11 @@ function renderBuilds(msg){
     try{applySnap(JSON.parse(decodeURIComponent(escape(atob(t.slice(5))))));say('Loaded.');}catch(e){say('That build code could not be read.');}};
 }
 /* ---------- shell ---------- */
-const TABS=['circuit','response','loading','tolerance','noise','level','design','listen','tools','validate','check','export','about'];
+const TABS=['circuit','response','flow','loading','tolerance','noise','level','design','listen','tools','validate','check','export','about'];
 function show(t){
   if(!TABS.includes(t)) t='response';
   if(tab==='listen'&&t!=='listen')cancelAnimationFrame(AU.raf);
+  if(tab==='flow'&&t!=='flow')cancelAnimationFrame(FL.raf);
   tab=t;document.body.dataset.tab=t;
   document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
   if(t==='circuit')return;
