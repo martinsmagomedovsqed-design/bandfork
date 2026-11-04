@@ -4,9 +4,9 @@
 
 ![Bandfork](screenshot.png)
 
-Companion to my band-pass headphone amplifier (20.4 Hz to 9.85 kHz, 20.8 dB).
+Companion to my band-pass headphone amplifier (20.4 Hz to about 10 kHz, 20.8 dB).
 
-The filter alone looked fine. With the output network and a 32 Ω load, the lower corner moved to 753 Hz and the signal at 1 kHz lost 17.6 dB. Bandfork models the whole chain, source to load, so you see that before you build.
+The filter alone looked fine. With the output network and a 32 Ω load, the modelled lower corner moved to 753 Hz and the signal at 1 kHz lost 17.6 dB. Bandfork models the whole chain, source to load, so you see that before you build.
 
 ## What it does
 
